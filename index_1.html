@@ -1,0 +1,1880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CEF Offer Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root{
+    --paper:#ECEEF2;
+    --paper-dim:#E1E4EA;
+    --ink:#1F2733;
+    --ink-soft:#4B5567;
+    --line:#C9CFD9;
+    --line-soft:#DBDFE6;
+    --surface:#FFFFFF;
+    --gold:#A9862F;
+    --gold-soft:#EFE4C6;
+    --teal:#2F6B63;
+    --teal-soft:#DCEAE6;
+    --brick:#B5473A;
+    --brick-soft:#F4E1DE;
+    --radius:3px;
+    --serif: "Source Serif 4", Georgia, serif;
+    --sans: "IBM Plex Sans", "Noto Sans Arabic", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:14.5px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 28px 80px;}
+
+  /* ---- Header / hero ---- */
+  .hero{
+    background:var(--ink);
+    color:var(--paper);
+    padding:40px 28px 32px;
+    margin-bottom:36px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 64px);
+    pointer-events:none;
+  }
+  .hero-inner{max-width:1180px;margin:0 auto;position:relative;}
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--gold-soft);
+    opacity:.85;
+    margin-bottom:10px;
+  }
+  .hero h1{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:clamp(28px,4vw,40px);
+    margin:0 0 8px;
+    letter-spacing:-0.01em;
+  }
+  .hero p{
+    max-width:640px;
+    color:#C7CCD6;
+    margin:0;
+    font-size:14.5px;
+  }
+  .hero-scale{
+    display:flex;
+    gap:22px;
+    margin-top:26px;
+    flex-wrap:wrap;
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:#9AA2B1;
+  }
+  .hero-scale b{color:var(--gold-soft);font-weight:600;}
+
+  /* ---- Section shell ---- */
+  section.card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    margin-bottom:26px;
+    position:relative;
+  }
+  .card-head{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    padding:20px 26px;
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#fff, #FBFBFC);
+  }
+  .card-num{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--gold);
+    border:1px solid var(--gold-soft);
+    background:var(--gold-soft);
+    width:26px;height:26px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:50%;
+    flex:none;
+  }
+  .card-head h2{
+    font-family:var(--serif);
+    font-size:19px;
+    font-weight:600;
+    margin:0;
+  }
+  .card-head .sub{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-left:auto;
+    text-align:right;
+  }
+  .card-body{padding:24px 26px 28px;}
+
+  /* ---- Form controls ---- */
+  label.field-label{
+    display:block;
+    font-size:12px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  input[type=text], input[type=number], input[type=date], select{
+    width:100%;
+    font-family:var(--sans);
+    font-size:14px;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    background:#fff;
+    color:var(--ink);
+  }
+  input:focus, select:focus, button:focus{
+    outline:2px solid var(--gold);
+    outline-offset:1px;
+  }
+  .grid{display:grid;gap:18px;}
+  .grid-2{grid-template-columns:1fr 1fr;}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  @media (max-width:820px){
+    .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+  }
+  .checkline{
+    display:flex;align-items:center;gap:9px;
+    font-size:13.5px;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    background:var(--paper);
+  }
+  .checkline input{width:16px;height:16px;}
+
+  button{
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:13px;
+    padding:10px 18px;
+    border-radius:var(--radius);
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--paper);
+    cursor:pointer;
+    transition:opacity .15s;
+  }
+  button:hover{opacity:.85;}
+  button.ghost{
+    background:transparent;
+    color:var(--ink);
+    border:1px solid var(--line);
+    font-weight:500;
+  }
+  button.gold{
+    background:var(--gold);
+    border-color:var(--gold);
+    color:#fff;
+  }
+  button:disabled{opacity:.4;cursor:not-allowed;}
+
+  /* ---- Upload zone ---- */
+  .dropzone{
+    border:1.5px dashed var(--line);
+    background:var(--paper);
+    padding:28px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  .dropzone:hover, .dropzone.drag{
+    border-color:var(--gold);
+    background:var(--gold-soft);
+  }
+  .dropzone .dz-title{font-weight:600;font-size:14px;margin-bottom:3px;}
+  .dropzone .dz-sub{font-size:12px;color:var(--ink-soft);}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--ink-soft);
+    border-bottom:1.5px solid var(--ink);
+    padding:8px 10px;
+    font-weight:600;
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:8px 10px;
+    border-bottom:1px solid var(--line-soft);
+    white-space:nowrap;
+  }
+  tbody tr:hover{background:var(--paper);}
+  .num{font-family:var(--mono);text-align:right;}
+  .scroll-table{max-height:340px;overflow:auto;border:1px solid var(--line);}
+  .scroll-table table{margin:0;}
+  .scroll-table thead th{position:sticky;top:0;background:#fff;}
+
+  .pill{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:11px;
+    padding:2px 8px;
+    border-radius:20px;
+    background:var(--paper-dim);
+    color:var(--ink-soft);
+  }
+  .status-line{
+    display:flex;align-items:center;gap:10px;
+    margin-top:14px;
+    font-size:13px;
+  }
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none;}
+  .status-dot.ok{background:var(--teal);}
+  .status-dot.warn{background:var(--brick);}
+
+  /* ---- Mapping row ---- */
+  .map-row{display:grid;grid-template-columns:180px 1fr;gap:12px;align-items:center;margin-bottom:10px;}
+  .map-row .req{color:var(--brick);font-weight:600;}
+
+  /* ---- Equity summary cards ---- */
+  .equity-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+  @media (max-width:820px){.equity-grid{grid-template-columns:repeat(2,1fr);}}
+  .stat-box{
+    border:1px solid var(--line);
+    padding:14px 16px;
+    background:var(--paper);
+  }
+  .stat-box .label{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin-bottom:6px;}
+  .stat-box .value{font-family:var(--mono);font-size:20px;font-weight:600;}
+  .stat-box .value small{font-size:12px;font-weight:400;color:var(--ink-soft);}
+
+  /* ---- Weighting table ---- */
+  /* Header and data rows share one grid template so columns line up exactly. */
+  .factor-row{
+    display:grid;
+    grid-template-columns: minmax(0,1.6fr) 90px minmax(0,1fr) 60px;
+    gap:16px;
+    align-items:center;
+    padding:14px 0;
+    border-bottom:1px solid var(--line-soft);
+  }
+  .factor-row > div:nth-child(2){display:flex;justify-content:center;}
+  .factor-row:last-child{border-bottom:none;}
+  .factor-row.factor-head{
+    padding:0 0 8px;
+    border-bottom:1.5px solid var(--ink);
+    font-size:11px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--ink-soft);
+  }
+  .factor-row.factor-head > div:nth-child(n+2){text-align:center;}
+  @media (max-width:620px){
+    .factor-row{grid-template-columns:minmax(0,1fr) 64px minmax(0,1fr) 44px;gap:10px;}
+    .weight-input{width:58px !important;}
+  }
+  .factor-row.disabled{opacity:.38;}
+  .factor-title{font-weight:600;font-size:13.5px;}
+  .factor-hint{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+  .weight-input{width:70px;font-family:var(--mono);text-align:center;}
+  input[type=range]{width:100%;accent-color:var(--gold);}
+  .score-readout{
+    font-family:var(--mono);
+    font-weight:600;
+    font-size:15px;
+    text-align:center;
+    border:1px solid var(--line);
+    background:var(--paper);
+    padding:4px 0;
+  }
+  .weight-total-note{
+    margin-top:12px;
+    font-size:12px;
+    color:var(--ink-soft);
+    font-family:var(--mono);
+  }
+  .policy-box{
+    margin-top:18px;
+    padding:16px 18px;
+    border:1px solid var(--gold-soft);
+    background:#FBF8F0;
+  }
+  .policy-box-title{
+    font-family:var(--mono);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--gold);
+    margin-bottom:6px;
+    font-weight:600;
+  }
+  .policy-box p{margin:0;font-size:13px;color:var(--ink-soft);line-height:1.55;}
+  .policy-box input{max-width:120px;}
+
+  .equity-override{
+    margin-top:6px;
+    padding:16px 18px;
+    border:1px solid var(--brick);
+    background:var(--brick-soft);
+  }
+  .equity-override .eo-title{font-weight:600;font-size:13.5px;margin-bottom:4px;}
+  .equity-override .eo-sub{font-size:12.5px;color:var(--ink-soft);margin-bottom:12px;}
+  .equity-override textarea{
+    width:100%;
+    font-family:var(--sans);
+    font-size:13px;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    resize:vertical;
+    min-height:60px;
+  }
+  .zone-badge{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    padding:2px 8px;
+    border-radius:20px;
+    margin-left:8px;
+    vertical-align:middle;
+  }
+  .zone-badge.standard{background:var(--teal-soft);color:var(--teal);}
+  .zone-badge.exceptional{background:var(--gold-soft);color:var(--gold);}
+
+  /* ---- Offer output ---- */
+  .offer-summary{
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap:0;
+    border:1px solid var(--ink);
+    margin-bottom:26px;
+  }
+  @media (max-width:820px){.offer-summary{grid-template-columns:1fr;}}
+  .offer-cell{
+    padding:20px 22px;
+    border-right:1px solid var(--line);
+    position:relative;
+  }
+  .offer-cell:last-child{border-right:none;}
+  .offer-cell.hi{background:var(--ink);color:var(--paper);}
+  .offer-cell .oc-label{
+    font-family:var(--mono);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--ink-soft);
+    margin-bottom:8px;
+  }
+  .offer-cell.hi .oc-label{color:var(--gold-soft);}
+  .offer-cell .oc-value{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:26px;
+  }
+  .offer-cell .oc-sub{font-size:11.5px;margin-top:6px;color:var(--ink-soft);}
+  .offer-cell.hi .oc-sub{color:#AEB4C0;}
+
+  /* ---- gauge ---- */
+  .gauge-wrap{padding:22px 26px 8px;border:1px solid var(--line);background:var(--paper);margin-bottom:22px;}
+  .gauge-caption{font-size:12px;color:var(--ink-soft);margin-top:10px;display:flex;gap:18px;flex-wrap:wrap;}
+  .gauge-caption span{display:inline-flex;align-items:center;gap:6px;}
+  .swatch{width:10px;height:10px;border-radius:50%;display:inline-block;}
+
+  .flag-list{list-style:none;margin:0;padding:0;}
+  .flag{
+    display:flex;gap:10px;
+    padding:12px 14px;
+    border-left:3px solid var(--brick);
+    background:var(--brick-soft);
+    font-size:13px;
+    margin-bottom:10px;
+  }
+  .flag.good{border-left-color:var(--teal);background:var(--teal-soft);}
+  .flag.neutral{border-left-color:var(--line);background:var(--paper);}
+
+  .empty-note{
+    font-size:13px;
+    color:var(--ink-soft);
+    border:1px dashed var(--line);
+    padding:16px;
+    background:var(--paper);
+  }
+
+  .actions-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+
+  .footer-note{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    text-align:center;
+    margin-top:10px;
+  }
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:var(--paper);
+    padding:10px 18px;border-radius:var(--radius);
+    font-size:13px;
+    opacity:0;pointer-events:none;
+    transition:opacity .2s;
+    z-index:50;
+  }
+  .toast.show{opacity:1;}
+
+  /* ---- Level of effort (LoE) ---- */
+  @media (min-width:821px){ .span-2{grid-column:span 2;} }
+  .loe-pill{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:10.5px;
+    padding:1px 8px;
+    border-radius:20px;
+    background:var(--teal-soft);
+    color:var(--teal);
+  }
+  .loe-pill.part{background:var(--gold-soft);color:var(--gold);}
+  .calc-tag{
+    display:inline-block;
+    font-size:10.5px;
+    font-family:var(--mono);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    padding:1px 8px;
+    border-radius:20px;
+    background:var(--teal-soft);
+    color:var(--teal);
+  }
+  .calc-tag.out{background:var(--paper-dim);color:var(--ink-soft);}
+  .calc-tag.fte{background:var(--gold-soft);color:var(--gold);}
+  tr.excluded td{color:var(--ink-soft);background:#FAFAFB;}
+  .loe-banner{
+    border:1px solid var(--gold);
+    border-left:4px solid var(--gold);
+    background:#FBF8F0;
+    padding:12px 16px;
+    margin-bottom:18px;
+    font-size:13px;
+    line-height:1.55;
+  }
+  .oc-fte{font-family:var(--mono);font-size:11.5px;margin-top:4px;color:var(--ink-soft);}
+  .offer-cell.hi .oc-fte{color:var(--gold-soft);}
+  .table-foot{font-size:11.5px;color:var(--ink-soft);margin-top:8px;}
+  thead th.th-num{text-align:right;}
+  .stat-box .stat-note{font-size:11px;color:var(--ink-soft);margin-top:4px;line-height:1.35;}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">CARE Egypt Foundation · Human Resources &amp; Administration</div>
+    <h1>Offer Calculator</h1>
+    <p>Turns a weighted CV assessment and the current grading scale into a defensible offer range — checked against the salaries and tenure of staff already sitting in that grade.</p>
+    <div class="hero-scale" id="scalePreview"></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ===== 01 Internal equity data ===== -->
+  <section class="card">
+    <div class="card-head">
+      <div class="card-num">01</div>
+      <h2>Internal equity data</h2>
+      <div class="sub">Upload the current payroll / staff list</div>
+    </div>
+    <div class="card-body">
+
+      <div class="dropzone" id="dropzone">
+        <div class="dz-title">Click to upload, or drag a file here</div>
+        <div class="dz-sub">.xlsx, .xls or .csv — e.g. your payroll export. Nothing leaves this browser.</div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none;">
+      </div>
+      <div class="status-line" id="uploadStatus" style="display:none;">
+        <div class="status-dot" id="uploadDot"></div>
+        <span id="uploadStatusText"></span>
+      </div>
+
+      <div id="mappingBlock" style="display:none;margin-top:22px;">
+        <div class="grid grid-2" style="margin-bottom:18px;">
+          <div>
+            <label class="field-label">Which row holds the column headers?</label>
+            <select id="headerRowSelect"></select>
+          </div>
+          <div>
+            <label class="field-label">Sheet</label>
+            <select id="sheetSelect"></select>
+          </div>
+        </div>
+
+        <div class="map-row"><label class="field-label" style="margin:0;">Employee name <span class="req">*</span></label><select id="mapName"></select></div>
+        <div class="map-row"><label class="field-label" style="margin:0;">Grade <span class="req">*</span></label><select id="mapGrade"></select></div>
+        <div class="map-row"><label class="field-label" style="margin:0;">Job title</label><select id="mapTitle"></select></div>
+        <div class="map-row"><label class="field-label" style="margin:0;">Date of hire</label><select id="mapHireDate"></select></div>
+        <div class="map-row"><label class="field-label" style="margin:0;">Basic salary</label><select id="mapBasic"></select></div>
+        <div class="map-row"><label class="field-label" style="margin:0;">Total salary (gross)</label><select id="mapTotal"></select></div>
+        <div class="map-row"><label class="field-label" style="margin:0;">Level of effort (LoE %)</label><select id="mapLoe"></select></div>
+        <div style="font-size:11.5px;color:var(--ink-soft);margin:-2px 0 12px 192px;" id="loeMapHint">Accepts 100%, 50%, 0.5 or 50. If not mapped, everyone is treated as 100% LoE.</div>
+
+        <div class="checkline" style="margin-bottom:14px;">
+          <input type="checkbox" id="includePartTime">
+          <label for="includePartTime">Include staff below 100% LoE in equity calculations, converted to full-time equivalent (salary ÷ LoE). Leave unticked to list them for reference only, so their pro-rated pay isn't read as a low outlier.</label>
+        </div>
+
+        <div class="grid grid-2" style="margin-top:6px;">
+          <div>
+            <label class="field-label">Use for equity comparisons</label>
+            <select id="salaryFieldChoice">
+              <option value="total">Total salary (gross)</option>
+              <option value="basic">Basic salary</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:flex-end;">
+            <button class="gold" id="parseStaffBtn" style="width:100%;">Load staff data</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="equitySummaryBlock" style="display:none;margin-top:26px;">
+        <div class="status-line" style="margin-top:0;margin-bottom:16px;">
+          <div class="status-dot ok"></div>
+          <span id="loadedSummaryText"></span>
+          <button class="ghost" id="clearDataBtn" style="margin-left:auto;padding:6px 12px;font-size:12px;">Clear data</button>
+        </div>
+        <div class="scroll-table">
+          <table id="gradeSummaryTable"></table>
+        </div>
+        <div class="table-foot" id="gradeSummaryFoot"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== 02 Role & candidate ===== -->
+  <section class="card">
+    <div class="card-head">
+      <div class="card-num">02</div>
+      <h2>Role &amp; candidate</h2>
+    </div>
+    <div class="card-body">
+      <div class="grid grid-3" style="margin-bottom:18px;">
+        <div>
+          <label class="field-label">Candidate name (optional)</label>
+          <input type="text" id="candidateName" placeholder="e.g. Mona Adel">
+        </div>
+        <div>
+          <label class="field-label">Role title</label>
+          <input type="text" id="roleTitle" placeholder="e.g. Project Manager">
+        </div>
+        <div>
+          <label class="field-label">Target grade</label>
+          <select id="targetGrade"></select>
+        </div>
+      </div>
+      <div class="grid grid-3">
+        <div class="checkline">
+          <input type="checkbox" id="isManagerial">
+          <label for="isManagerial">Role carries managerial / supervisory responsibility</label>
+        </div>
+        <div class="checkline">
+          <input type="checkbox" id="isInternal">
+          <label for="isInternal">Internal candidate / rehire (has prior CARE Egypt tenure)</label>
+        </div>
+        <div>
+          <label class="field-label">Candidate's total relevant experience (years)</label>
+          <input type="number" id="candidateExpYears" min="0" step="0.5" value="0">
+        </div>
+      </div>
+      <div class="grid grid-3" style="margin-top:18px;">
+        <div>
+          <label class="field-label" for="positionLoe">Position level of effort (LoE %)</label>
+          <input type="number" id="positionLoe" min="1" max="100" step="5" value="100">
+        </div>
+        <div class="span-2" style="align-self:end;font-size:12px;color:var(--ink-soft);padding-bottom:4px;" id="loeHint">
+          100% = full-time. For a part-time position (e.g. 50%), the offer is worked out on a full-time basis against full-time peers, then pro-rated to the LoE.
+        </div>
+      </div>
+      <div class="grid grid-2" style="margin-top:18px;" id="careTenureYearsWrap">
+        <div>
+          <label class="field-label">Years previously served at CARE Egypt</label>
+          <input type="number" id="candidateCareYears" min="0" step="0.5" value="0">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 03 CV weighting ===== -->
+  <section class="card">
+    <div class="card-head">
+      <div class="card-num">03</div>
+      <h2>CV weighting</h2>
+      <div class="sub">Score 1–5 against role requirements</div>
+    </div>
+    <div class="card-body">
+      <div class="factor-row factor-head">
+        <div>Factor</div><div>Weight %</div><div>Score (1–5)</div><div>Value</div>
+      </div>
+      <div id="factorRows"></div>
+      <div class="weight-total-note" id="weightTotalNote"></div>
+      <div class="actions-row">
+        <button class="ghost" id="resetWeightsBtn">Reset weights to default</button>
+      </div>
+      <div style="margin-top:14px;font-size:11.5px;color:var(--ink-soft);">
+        Score guide — 1 below role requirements · 2 partially meets · 3 meets requirements · 4 exceeds requirements · 5 significantly exceeds / rare expertise.
+      </div>
+
+      <div class="policy-box">
+        <div class="policy-box-title">Offer policy</div>
+        <p>Standard offers run from the grade <b>minimum</b> up to the grade <b>midpoint</b>. Going above the midpoint is reserved for exceptional profiles and needs a high enough weighted score to unlock. Where the grade's current staff sit is blended into the calculation, not just shown as a reference.</p>
+        <div class="grid grid-2" style="margin-top:12px;">
+          <div>
+            <label class="field-label">Weighted score needed to unlock above-midpoint offers</label>
+            <input type="number" id="exceptionalThreshold" min="50" max="100" step="1" value="90">
+          </div>
+          <div>
+            <label class="field-label">Internal equity weight (blends peer pay into the offer)</label>
+            <input type="number" id="equityWeight" min="0" max="100" step="5" value="30">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 04 Offer range ===== -->
+  <section class="card">
+    <div class="card-head">
+      <div class="card-num">04</div>
+      <h2>Suggested offer range</h2>
+      <div class="sub" id="gradeBandLabel"></div>
+    </div>
+    <div class="card-body">
+
+      <div class="loe-banner" id="loeBanner" style="display:none;"></div>
+
+      <div class="offer-summary">
+        <div class="offer-cell">
+          <div class="oc-label">Floor</div>
+          <div class="oc-value" id="offerLow">—</div>
+          <div class="oc-fte" id="offerLowFte"></div>
+          <div class="oc-sub">Grade minimum — the lowest defensible starting point.</div>
+        </div>
+        <div class="offer-cell hi">
+          <div class="oc-label">Recommended<span class="zone-badge" id="zoneBadge"></span></div>
+          <div class="oc-value" id="offerRec">—</div>
+          <div class="oc-fte" id="offerRecFte"></div>
+          <div class="oc-sub" id="offerRecSub">Based on weighted CV score within the grade band.</div>
+        </div>
+        <div class="offer-cell">
+          <div class="oc-label">Ceiling</div>
+          <div class="oc-value" id="offerHigh">—</div>
+          <div class="oc-fte" id="offerHighFte"></div>
+          <div class="oc-sub" id="offerHighSub">Grade midpoint — the standard cap without an exceptional case.</div>
+        </div>
+      </div>
+
+      <div class="gauge-wrap">
+        <svg id="gaugeSvg" width="100%" height="140" viewBox="0 0 1000 140" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="gauge-caption">
+          <span><span class="swatch" style="background:var(--gold);"></span> Recommended offer</span>
+          <span><span class="swatch" style="background:var(--ink);opacity:.35;"></span> Suggested range</span>
+          <span><span class="swatch" style="background:var(--teal);"></span> Current staff at this grade</span>
+          <span><span class="swatch" style="background:repeating-linear-gradient(45deg,var(--gold-soft),var(--gold-soft) 3px,#fff 3px,#fff 6px);border:1px solid var(--gold);"></span> Exceptional zone (midpoint–max)</span>
+        </div>
+      </div>
+
+      <div class="equity-grid" id="equityStatBoxes"></div>
+
+      <ul class="flag-list" id="flagList"></ul>
+
+      <div class="equity-override" id="equityOverrideBlock" style="display:none;">
+        <div class="eo-title">This offer would exceed the current highest-paid staff at this grade</div>
+        <div class="eo-sub" id="equityOverrideSub"></div>
+        <div class="checkline" style="background:#fff;margin-bottom:10px;">
+          <input type="checkbox" id="justifyEquityOverride">
+          <label for="justifyEquityOverride">I have a documented justification to offer above the current internal ceiling for this grade</label>
+        </div>
+        <textarea id="justificationNote" placeholder="e.g. candidate brings a scarce technical skillset not held by current staff at this grade; approved by [name/date]…" style="display:none;"></textarea>
+      </div>
+
+      <div id="peerTableWrap" style="display:none;">
+        <label class="field-label" style="margin-top:6px;">Staff currently at this grade</label>
+        <div class="scroll-table">
+          <table id="peerTable"></table>
+        </div>
+        <div class="table-foot" id="peerTableFoot"></div>
+      </div>
+
+      <div class="actions-row">
+        <button class="gold" id="copySummaryBtn">Copy offer summary</button>
+        <button class="ghost" id="downloadPdfBtn">Download PDF report</button>
+        <button class="ghost" id="downloadExcelBtn">Download Excel report</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer-note">All figures in EGP / month, based on the CEF Salary Structure &amp; Grading Guide effective 1 July 2026. Grade bands are full-time (100% LoE); part-time offers are pro-rated. This tool supports — not replaces — HR approval on final offers.</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================= DATA ============================= */
+const GRADES = [
+  {grade:1,  title:"Support Staff — Unskilled Labor",             min:8500,   mid:10057,  max:12500},
+  {grade:2,  title:"Admin & Data Clerk / Driver",                 min:10951,  mid:12957,  max:16500},
+  {grade:3,  title:"Junior Assistant / Skilled Labor",             min:14108,  mid:16693,  max:21000},
+  {grade:4,  title:"Assistant level",                              min:18176,  mid:21506,  max:26500},
+  {grade:5,  title:"Specialist level",                             min:23417,  mid:27707,  max:34000},
+  {grade:6,  title:"Officer",                                      min:30169,  mid:35696,  max:44000},
+  {grade:7,  title:"Senior Officer / Supervisor",                  min:33000,  mid:45988,  max:56000},
+  {grade:8,  title:"Team Leader / Unit Head",                      min:48000,  mid:59248,  max:73000},
+  {grade:9,  title:"Manager",                                      min:64511,  mid:80000,  max:97000},
+  {grade:10, title:"Senior Manager",                                min:85000,  mid:110000, max:145000},
+  {grade:11, title:"Director",                                      min:132000, mid:155000, max:195000},
+  {grade:12, title:"Regional/Global Lead / Deputy COP",             min:168770, mid:199691, max:257000},
+  {grade:13, title:"Senior Director / Deputy CEO / COP",            min:217431, mid:257268, max:320000},
+  {grade:14, title:"Executive (Board-Approved)",                    min:290000, mid:435000, max:580000},
+];
+
+const DEFAULT_FACTORS = [
+  {key:'relevantExp', label:'Relevant years of experience', hint:'External / total career-relevant background', weight:30, always:true},
+  {key:'careTenure',  label:'Years of experience within CARE Egypt', hint:'Only applies to internal candidates or rehires', weight:10, always:false, requires:'internal'},
+  {key:'academics',   label:'Knowledge & academics relevant to role', hint:'Education, certifications, sector knowledge', weight:20, always:true},
+  {key:'managerial',  label:'Managerial / supervisory experience', hint:'Only applies to roles with people-management scope', weight:20, always:false, requires:'managerial'},
+  {key:'technical',   label:'Technical competencies', hint:'Tools, systems, functional/technical skill for the role', weight:20, always:true},
+];
+
+let factors = JSON.parse(JSON.stringify(DEFAULT_FACTORS));
+let scores = {relevantExp:3, careTenure:3, academics:3, managerial:3, technical:3};
+
+let staffData = [];          // parsed staff rows: {name, title, grade, hireDate, basic, total, tenureYears}
+let salaryField = 'total';   // 'total' or 'basic'
+let workbookCache = null;    // last parsed workbook
+let rawRowsCache = null;     // AOA rows of the active sheet
+
+const fmt = n => (isFinite(n) ? Math.round(n).toLocaleString('en-US') : '—');
+// Payroll exports often format salary cells as currency text, e.g. " EGP 47,349.94 ".
+// Strip everything except digits, a decimal point, and a leading minus before parsing.
+const cleanCurrency = v => {
+  if(v === undefined || v === null) return NaN;
+  const s = String(v).trim().replace(/[^\d.\-]/g, '');
+  return s === '' || s === '-' ? NaN : parseFloat(s);
+};
+const $ = id => document.getElementById(id);
+
+/* ---------- Level of effort (LoE) ----------
+   The grading scale is a full-time (100% LoE) scale. All equity maths therefore
+   runs on a full-time basis; a part-time position's offer is computed at full
+   time and then pro-rated. Payroll LoE cells may arrive as "50%", "0.5" or "50". */
+const FULL_TIME_CUTOFF = 99.5;
+function parseLoe(raw){
+  if(raw === undefined || raw === null) return null;
+  const s = String(raw).trim();
+  if(!s) return null;
+  const hasPct = s.includes('%');
+  const n = parseFloat(s.replace(/[^\d.\-]/g, ''));
+  if(!isFinite(n) || n <= 0) return null;
+  const pct = (!hasPct && n <= 1) ? n * 100 : n;
+  return Math.round(pct * 100) / 100;
+}
+const isFullTime = p => p.loe >= FULL_TIME_CUTOFF;
+const fmtLoe = v => (Math.round(v * 10) / 10) + '%';
+function positionLoe(){
+  const v = parseFloat($('positionLoe').value);
+  return isFinite(v) && v > 0 ? Math.min(100, v) : 100;
+}
+const includePartTime = () => $('includePartTime').checked;
+const loeMapped = () => staffData.some(p => p.loeKnown);
+let lastCalc = null;         // latest computed offer (full-time and pro-rated), used by exports
+
+/* ============================= HERO STRIP ============================= */
+(function initHero(){
+  const el = $('scalePreview');
+  el.innerHTML = GRADES.slice().reverse().slice(0,4).map(g =>
+    `<div><b>G${g.grade}</b> ${g.title.split(' /')[0].split(' —')[0]} · ${fmt(g.min)}–${fmt(g.max)}</div>`
+  ).join('') + `<div style="opacity:.7">…14 grades total, per the July 2026 scale</div>`;
+})();
+
+/* ============================= TARGET GRADE SELECT ============================= */
+(function initGradeSelect(){
+  const sel = $('targetGrade');
+  sel.innerHTML = GRADES.map(g => `<option value="${g.grade}">Grade ${g.grade} — ${g.title} (${fmt(g.min)}–${fmt(g.max)})</option>`).join('');
+  sel.value = "9";
+})();
+
+/* ============================= FACTOR ROWS ============================= */
+function factorActive(f){
+  if(f.always) return true;
+  if(f.requires === 'internal') return $('isInternal').checked;
+  if(f.requires === 'managerial') return $('isManagerial').checked;
+  return true;
+}
+
+function renderFactorRows(){
+  const wrap = $('factorRows');
+  wrap.innerHTML = '';
+  factors.forEach(f => {
+    const active = factorActive(f);
+    const row = document.createElement('div');
+    row.className = 'factor-row' + (active ? '' : ' disabled');
+    row.innerHTML = `
+      <div>
+        <div class="factor-title">${f.label}</div>
+        <div class="factor-hint">${f.hint}</div>
+      </div>
+      <div><input type="number" class="weight-input" data-key="${f.key}" value="${f.weight}" min="0" max="100" ${active?'':'disabled'}></div>
+      <div><input type="range" min="1" max="5" step="1" value="${scores[f.key]}" data-key="${f.key}" class="score-slider" ${active?'':'disabled'}></div>
+      <div class="score-readout" data-readout="${f.key}">${scores[f.key]}</div>
+    `;
+    wrap.appendChild(row);
+  });
+
+  wrap.querySelectorAll('.weight-input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const k = e.target.dataset.key;
+      const f = factors.find(f=>f.key===k);
+      f.weight = parseFloat(e.target.value) || 0;
+      recalc();
+    });
+  });
+  wrap.querySelectorAll('.score-slider').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const k = e.target.dataset.key;
+      scores[k] = parseInt(e.target.value,10);
+      wrap.querySelector(`[data-readout="${k}"]`).textContent = scores[k];
+      recalc();
+    });
+  });
+}
+
+$('isManagerial').addEventListener('change', () => { renderFactorRows(); recalc(); });
+$('isInternal').addEventListener('change', () => {
+  $('careTenureYearsWrap').style.display = $('isInternal').checked ? 'grid' : 'none';
+  renderFactorRows(); recalc();
+});
+$('careTenureYearsWrap').style.display = 'none';
+
+$('resetWeightsBtn').addEventListener('click', () => {
+  factors = JSON.parse(JSON.stringify(DEFAULT_FACTORS));
+  scores = {relevantExp:3, careTenure:3, academics:3, managerial:3, technical:3};
+  renderFactorRows();
+  recalc();
+});
+
+renderFactorRows();
+
+/* ============================= FILE UPLOAD & PARSING ============================= */
+const dropzone = $('dropzone');
+const fileInput = $('fileInput');
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('drag');
+  if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if(e.target.files.length) handleFile(e.target.files[0]); });
+
+function handleFile(file){
+  setUploadStatus(`Reading ${file.name}…`, null);
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try{
+      const data = new Uint8Array(e.target.result);
+      workbookCache = XLSX.read(data, {type:'array', cellDates:true});
+      setUploadStatus(`Loaded ${file.name} — ${workbookCache.SheetNames.length} sheet(s)`, 'ok');
+      populateSheetSelect();
+      $('mappingBlock').style.display = 'block';
+    }catch(err){
+      setUploadStatus('Could not read this file — try exporting as .xlsx and re-uploading.', 'warn');
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function setUploadStatus(text, state){
+  $('uploadStatus').style.display = 'flex';
+  $('uploadStatusText').textContent = text;
+  const dot = $('uploadDot');
+  dot.className = 'status-dot' + (state ? (' '+state) : '');
+}
+
+function populateSheetSelect(){
+  const sel = $('sheetSelect');
+  sel.innerHTML = workbookCache.SheetNames.map(n => `<option value="${n}">${n}</option>`).join('');
+  sel.onchange = () => loadSheet(sel.value);
+  loadSheet(workbookCache.SheetNames[0]);
+}
+
+function loadSheet(sheetName){
+  const ws = workbookCache.Sheets[sheetName];
+  rawRowsCache = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
+  populateHeaderRowSelect();
+}
+
+function guessHeaderRow(){
+  const keywords = ['name','grade','title','salary','hire','id','basic','مرتب','اسم','درجة'];
+  for(let i=0;i<Math.min(15, rawRowsCache.length);i++){
+    const row = rawRowsCache[i].map(c => String(c).toLowerCase());
+    const nonEmpty = row.filter(c => c.trim() !== '').length;
+    const hasKeyword = row.some(c => keywords.some(k => c.includes(k)));
+    if(nonEmpty >= 3 && hasKeyword) return i;
+  }
+  return 0;
+}
+
+function populateHeaderRowSelect(){
+  const sel = $('headerRowSelect');
+  const guess = guessHeaderRow();
+  const options = [];
+  for(let i=0;i<Math.min(15, rawRowsCache.length);i++){
+    const preview = rawRowsCache[i].slice(0,6).filter(c=>String(c).trim()!=='').join(' | ').slice(0,70);
+    options.push(`<option value="${i}" ${i===guess?'selected':''}>Row ${i+1}: ${preview || '(empty)'}</option>`);
+  }
+  sel.innerHTML = options.join('');
+  sel.onchange = () => populateColumnMaps();
+  populateColumnMaps();
+}
+
+function populateColumnMaps(){
+  const headerIdx = parseInt($('headerRowSelect').value,10);
+  const headerRow = rawRowsCache[headerIdx] || [];
+  const opts = ['<option value="-1">— not in file —</option>']
+    .concat(headerRow.map((h,i) => `<option value="${i}">${String.fromCharCode(65+(i%26))}${i>=26?Math.floor(i/26):''}: ${String(h).trim() || '(blank)'}</option>`));
+  const optHtml = opts.join('');
+
+  ['mapName','mapGrade','mapTitle','mapHireDate','mapBasic','mapTotal','mapLoe'].forEach(id => {
+    $(id).innerHTML = optHtml;
+  });
+
+  const auto = (keys) => {
+    for(let i=0;i<headerRow.length;i++){
+      const h = String(headerRow[i]).toLowerCase();
+      if(keys.some(k => h.includes(k))) return i;
+    }
+    return -1;
+  };
+  const setIfFound = (id, keys) => { const idx = auto(keys); if(idx>=0) $(id).value = idx; };
+  setIfFound('mapName', ['employee name','name','اسم']);
+  setIfFound('mapGrade', ['grade','درجة']);
+  setIfFound('mapTitle', ['title','مسمى']);
+  setIfFound('mapHireDate', ['hire','تعيين']);
+  setIfFound('mapBasic', ['basic salary','basic']);
+  setIfFound('mapTotal', ['total salary','المرتب الكلي','gross']);
+  // LoE headers: "LoE", "LoE %", "L.O.E", "Level of Effort", "FTE" — matched on word
+  // boundaries so e.g. "After tax" is not mistaken for "FTE".
+  const loeRe = /\bl\.?o\.?e\b|level\s*of\s*effort|\beffort\b|\bfte\b|نسبة/i;
+  const loeIdx = headerRow.findIndex(h => loeRe.test(String(h)));
+  if(loeIdx >= 0) $('mapLoe').value = loeIdx;
+}
+
+// Egypt payroll exports store hire dates either as real Excel date cells (already
+// resolved to JS Date objects by SheetJS's cellDates:true) or, occasionally, as
+// plain text in day/month/year order. Native `new Date(string)` assumes US
+// month/day order and silently misreads those — so day-first strings are parsed
+// explicitly before falling back to the native parser.
+function parseFlexibleDate(raw){
+  if(raw instanceof Date && !isNaN(raw)) return raw;
+  if(typeof raw !== 'string' || !raw.trim()) return null;
+  const s = raw.trim();
+  const dmy = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if(dmy){
+    let [, d, m, y] = dmy;
+    if(y.length === 2) y = '20' + y;
+    const dt = new Date(Number(y), Number(m)-1, Number(d));
+    if(!isNaN(dt) && dt.getFullYear() > 1950) return dt;
+  }
+  const fallback = new Date(s);
+  return !isNaN(fallback) ? fallback : null;
+}
+
+// Grade cells are expected to be a bare number, but tolerate stray text like "G7".
+function parseGradeNumber(raw){
+  const digits = String(raw ?? '').replace(/[^0-9]/g, '');
+  return digits ? parseInt(digits, 10) : NaN;
+}
+
+$('parseStaffBtn').addEventListener('click', parseStaffData);
+
+function parseStaffData(){
+  const headerIdx = parseInt($('headerRowSelect').value,10);
+  const iName = parseInt($('mapName').value,10);
+  const iGrade = parseInt($('mapGrade').value,10);
+  const iTitle = parseInt($('mapTitle').value,10);
+  const iHire = parseInt($('mapHireDate').value,10);
+  const iBasic = parseInt($('mapBasic').value,10);
+  const iTotal = parseInt($('mapTotal').value,10);
+  const iLoe = parseInt($('mapLoe').value,10);
+
+  if(iName < 0 || iGrade < 0){
+    setUploadStatus('Please map at least Employee name and Grade before loading.', 'warn');
+    return;
+  }
+
+  salaryField = $('salaryFieldChoice').value === 'basic' ? 'basic' : 'total';
+  if(salaryField === 'total' && iTotal < 0) salaryField = 'basic';
+  if(salaryField === 'basic' && iBasic < 0) salaryField = 'total';
+
+  const rows = rawRowsCache.slice(headerIdx+1);
+  const today = new Date();
+  const parsed = [];
+
+  rows.forEach(r => {
+    const name = String(r[iName] ?? '').trim();
+    const grade = parseGradeNumber(r[iGrade]);
+    if(!name || !isFinite(grade)) return;
+
+    const hireDate = iHire >= 0 ? parseFlexibleDate(r[iHire]) : null;
+    const tenureYears = hireDate ? (today - hireDate) / (1000*60*60*24*365.25) : null;
+
+    const basic = iBasic >= 0 ? cleanCurrency(r[iBasic]) : NaN;
+    const total = iTotal >= 0 ? cleanCurrency(r[iTotal]) : NaN;
+    const loeParsed = iLoe >= 0 ? parseLoe(r[iLoe]) : null;
+
+    parsed.push({
+      loe: loeParsed !== null ? loeParsed : 100,
+      loeKnown: loeParsed !== null,
+      name,
+      title: iTitle >= 0 ? String(r[iTitle] ?? '').trim() : '',
+      grade,
+      hireDate,
+      tenureYears,
+      basic: isFinite(basic) ? basic : null,
+      total: isFinite(total) ? total : null,
+    });
+  });
+
+  staffData = parsed;
+  renderEquitySummary();
+  $('equitySummaryBlock').style.display = 'block';
+  recalc();
+}
+
+$('clearDataBtn').addEventListener('click', () => {
+  staffData = [];
+  $('equitySummaryBlock').style.display = 'none';
+  recalc();
+});
+
+/* ============================= EQUITY SUMMARY TABLE (by grade) ============================= */
+function median(arr){
+  if(!arr.length) return null;
+  const s = arr.slice().sort((a,b)=>a-b);
+  const mid = Math.floor(s.length/2);
+  return s.length%2 ? s[mid] : (s[mid-1]+s[mid])/2;
+}
+function average(arr){ return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
+
+function gradePeers(grade){ return staffData.filter(s => s.grade === grade); }
+
+// Splits a grade's staff into those that feed the equity maths ("included") and
+// those listed for reference only ("excluded" — below 100% LoE, unless the
+// full-time-equivalent toggle is on). Every included salary is on a full-time
+// basis (fteSalary), matching the grading scale.
+function gradeComparison(gradeNum){
+  const all = gradePeers(gradeNum);
+  const normalise = includePartTime();
+  const included = [], excluded = [];
+  all.forEach(p => {
+    const raw = p[salaryField];
+    p.fteSalary = raw === null ? null : (isFullTime(p) ? raw : raw / (p.loe / 100));
+    if(isFullTime(p) || normalise) included.push(p); else excluded.push(p);
+  });
+  const salaries = included.map(p => p.fteSalary).filter(v => v !== null);
+  return {all, included, excluded, salaries};
+}
+
+function renderEquitySummary(){
+  const partTimeTotal = staffData.filter(p => !isFullTime(p)).length;
+  const loeNote = !loeMapped()
+    ? ' No LoE column mapped — all staff treated as 100% LoE.'
+    : partTimeTotal
+      ? ` ${partTimeTotal} staff are below 100% LoE — ${includePartTime() ? 'included at their full-time equivalent' : 'listed, but excluded from equity calculations'}.`
+      : ' All staff are at 100% LoE.';
+  $('loadedSummaryText').textContent = `${staffData.length} staff loaded across ${new Set(staffData.map(s=>s.grade)).size} grades. Comparisons use ${salaryField === 'total' ? 'total (gross) salary' : 'basic salary'}.` + loeNote;
+
+  const rows = GRADES.slice().reverse().map(g => {
+    const {all, included, excluded, salaries} = gradeComparison(g.grade);
+    const partCount = all.filter(p => !isFullTime(p)).length;
+    const tenures = included.map(p => p.tenureYears).filter(v => v !== null);
+    return `<tr>
+      <td>G${g.grade}</td>
+      <td>${g.title}</td>
+      <td class="num">${all.length}</td>
+      <td class="num">${partCount ? `<span class="loe-pill part">${partCount}${excluded.length ? ' excl.' : ' @FTE'}</span>` : '—'}</td>
+      <td class="num">${salaries.length ? fmt(average(salaries)) : '—'}</td>
+      <td class="num">${salaries.length ? fmt(median(salaries)) : '—'}</td>
+      <td class="num">${tenures.length ? average(tenures).toFixed(1)+'y' : '—'}</td>
+      <td class="num">${fmt(g.min)}–${fmt(g.max)}</td>
+    </tr>`;
+  }).join('');
+
+  $('gradeSummaryTable').innerHTML = `
+    <thead><tr>
+      <th>Grade</th><th>Title</th><th class="th-num">Headcount</th><th class="th-num">Below 100% LoE</th><th class="th-num">Avg salary</th><th class="th-num">Median salary</th><th class="th-num">Avg tenure</th><th class="th-num">Band (min–max)</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>`;
+
+  $('gradeSummaryFoot').textContent = includePartTime()
+    ? 'Average/median salary and tenure include staff below 100% LoE, converted to full-time equivalent (salary ÷ LoE).'
+    : 'Average/median salary and tenure use full-time (100% LoE) staff only. Headcount includes everyone.';
+}
+
+/* ============================= CORE CALCULATION ============================= */
+function weightedScorePercent(){
+  const active = factors.filter(factorActive);
+  const totalWeight = active.reduce((a,f)=>a+f.weight,0);
+  if(totalWeight <= 0) return {percent:0, totalWeight:0};
+  const weightedSum = active.reduce((a,f)=>a + f.weight*scores[f.key], 0);
+  const percent = (weightedSum / (totalWeight*5)) * 100;
+  return {percent, totalWeight};
+}
+
+function currentGrade(){
+  const g = parseInt($('targetGrade').value,10);
+  return GRADES.find(x=>x.grade===g);
+}
+
+function exceptionalThreshold(){
+  const v = parseFloat($('exceptionalThreshold').value);
+  return isFinite(v) ? Math.max(50, Math.min(100, v)) : 90;
+}
+
+// Two-zone mapping: 0..threshold maps across min..mid (standard offers).
+// threshold..100 maps across mid..max (exceptional profiles only).
+function scoreToOffer(grade, percent, threshold){
+  const p = Math.max(0, Math.min(100, percent));
+  if(p <= threshold){
+    return grade.min + (p/threshold) * (grade.mid - grade.min);
+  }
+  return grade.mid + ((p-threshold)/(100-threshold)) * (grade.max - grade.mid);
+}
+
+function equityWeightFraction(){
+  const v = parseFloat($('equityWeight').value);
+  const pct = isFinite(v) ? Math.max(0, Math.min(100, v)) : 30;
+  return pct / 100;
+}
+
+// Where do this grade's current staff sit within the min-max band, on average?
+// Returns null if there's no salary data to compare against.
+// `peers` = staff included in the equity maths (full-time basis); `allPeers` = everyone
+// at the grade; `excluded` = below-100%-LoE staff shown for reference only.
+function equityPercentForGrade(grade){
+  const {all, included, excluded, salaries} = gradeComparison(grade.grade);
+  const base = {peers: included, allPeers: all, excluded, salaries};
+  if(!salaries.length) return {...base, equityPercent: null, peerMedian: null, peerMax: null};
+  const peerMedian = median(salaries);
+  const equityPercent = Math.max(0, Math.min(100, ((peerMedian - grade.min) / (grade.max - grade.min)) * 100));
+  return {...base, equityPercent, peerMedian, peerMax: Math.max(...salaries)};
+}
+
+function recalc(){
+  const {percent, totalWeight} = weightedScorePercent();
+  const grade = currentGrade();
+  const threshold = exceptionalThreshold();
+  const equityWeight = equityWeightFraction();
+  const eq = equityPercentForGrade(grade);
+  const {peers, salaries, equityPercent, peerMedian, peerMax, excluded} = eq;
+  const loe = positionLoe();
+  const loeF = loe / 100;
+  const isPartTimeRole = loe < FULL_TIME_CUTOFF;
+
+  // Blend the CV score with where current staff at this grade actually sit,
+  // so internal equity shapes the offer itself — not just a cap applied after.
+  const hasEquityData = equityPercent !== null;
+  const blendedPercent = hasEquityData
+    ? (1 - equityWeight) * percent + equityWeight * equityPercent
+    : percent;
+
+  $('weightTotalNote').textContent = totalWeight > 0
+    ? `Weighted CV score: ${percent.toFixed(1)}%` +
+      (hasEquityData
+        ? ` · Grade ${grade.grade} ${excluded.length ? 'full-time ' : ''}peers sit at ~${equityPercent.toFixed(0)}% of band (median ${fmt(peerMedian)}) · Blended position: ${blendedPercent.toFixed(1)}% (equity weight ${(equityWeight*100).toFixed(0)}%)`
+        : (eq.allPeers.length
+            ? ` · No full-time staff at this grade to compare against — offer is based on CV score alone`
+            : ` · No staff on file at this grade — offer is based on CV score alone`))
+      + (isPartTimeRole ? ` · Position LoE ${fmtLoe(loe)} — offer pro-rated` : '')
+    : `No active factors — check at least one weight above zero.`;
+
+  $('gradeBandLabel').textContent = `Grade ${grade.grade} — ${grade.title} · ${fmt(grade.min)}–${fmt(grade.mid)}–${fmt(grade.max)} EGP/month`;
+
+  let recommended = scoreToOffer(grade, blendedPercent, threshold);
+  let low = scoreToOffer(grade, blendedPercent - 12, threshold);
+  let high = scoreToOffer(grade, blendedPercent + 12, threshold);
+
+  const isExceptional = blendedPercent > threshold;
+  $('zoneBadge').textContent = isExceptional ? 'Exceptional' : 'Standard';
+  $('zoneBadge').className = 'zone-badge ' + (isExceptional ? 'exceptional' : 'standard');
+  $('offerHighSub').textContent = high > grade.mid
+    ? 'Reaches into the exceptional zone — requires a strong, documented case.'
+    : 'Grade midpoint — the standard cap without an exceptional case.';
+
+  // ---- internal equity hard cap: never exceed the current highest-paid peer, unless justified ----
+  const override = $('justifyEquityOverride').checked;
+  let equityCapped = false;
+  if(peerMax !== null && !override){
+    if(recommended > peerMax){ recommended = peerMax; equityCapped = true; }
+    if(high > peerMax){ high = peerMax; }
+    if(low > peerMax){ low = peerMax; }
+  }
+  low = Math.min(low, recommended);
+  high = Math.max(high, recommended);
+
+  // All of the above is on a full-time (100% LoE) basis. Pro-rate for part-time roles.
+  const paidLow = low * loeF, paidRec = recommended * loeF, paidHigh = high * loeF;
+  $('offerLow').textContent = fmt(paidLow);
+  $('offerRec').textContent = fmt(paidRec);
+  $('offerHigh').textContent = fmt(paidHigh);
+  $('offerLowFte').textContent  = isPartTimeRole ? `${fmt(low)} at 100% LoE` : '';
+  $('offerRecFte').textContent  = isPartTimeRole ? `${fmt(recommended)} at 100% LoE` : '';
+  $('offerHighFte').textContent = isPartTimeRole ? `${fmt(high)} at 100% LoE` : '';
+
+  const banner = $('loeBanner');
+  if(isPartTimeRole){
+    banner.style.display = 'block';
+    banner.innerHTML = `<b>Part-time position · ${fmtLoe(loe)} LoE.</b> The range is worked out on a full-time basis (grade band and full-time peers), then pro-rated to ${fmtLoe(loe)}. The large figures below are the amounts to offer; the full-time equivalent is shown under each. The gauge shows full-time equivalents.`;
+  } else {
+    banner.style.display = 'none';
+  }
+
+  lastCalc = {
+    loe, isPartTimeRole, percent, blendedPercent,
+    fteLow: low, fteRec: recommended, fteHigh: high,
+    paidLow, paidRec, paidHigh,
+  };
+
+  $('offerRecSub').textContent = equityCapped
+    ? `Blended position ${blendedPercent.toFixed(0)}% — capped at the current highest-paid peer in Grade ${grade.grade}.`
+    : `Blended position ${blendedPercent.toFixed(0)}% of Grade ${grade.grade}'s ${isExceptional ? 'exceptional' : 'standard'} range${hasEquityData ? ', including internal equity' : ''}.`;
+
+  // equity override block visibility
+  const uncappedOffer = scoreToOffer(grade, blendedPercent, threshold);
+  const wouldExceed = peerMax !== null && uncappedOffer > peerMax;
+  const eoBlock = $('equityOverrideBlock');
+  if(wouldExceed){
+    eoBlock.style.display = 'block';
+    const fteNote = isPartTimeRole ? ` (full-time equivalent; ${fmt(peerMax*loeF)} at ${fmtLoe(loe)} LoE)` : '';
+    $('equityOverrideSub').textContent = `The blended offer would be ${fmt(uncappedOffer)}, above the current highest ${excluded.length ? 'full-time ' : ''}peer salary of ${fmt(peerMax)} in Grade ${grade.grade}. Without justification, the offer is held at ${fmt(peerMax)}${fteNote}.`;
+  } else {
+    eoBlock.style.display = 'none';
+  }
+
+  renderGauge(grade, low, recommended, high, threshold, peerMax);
+  renderEquityCheck(grade, recommended, low, high, equityCapped, peerMax, eq);
+}
+
+/* ============================= GAUGE SVG ============================= */
+function renderGauge(grade, low, recommended, high, threshold, peerMax){
+  const svg = $('gaugeSvg');
+  const W = 1000;
+  const marginL = 70, marginR = 70;
+  const bandY = 58, bandH = 14;
+  const innerW = W - marginL - marginR;
+
+  const toX = v => marginL + ((v - grade.min) / (grade.max - grade.min)) * innerW;
+
+  let parts = [];
+
+  parts.push(`
+    <defs>
+      <pattern id="hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+        <rect width="7" height="7" fill="#EFE4C6"></rect>
+        <line x1="0" y1="0" x2="0" y2="7" stroke="#A9862F" stroke-width="1.5" opacity="0.55"></line>
+      </pattern>
+    </defs>
+  `);
+
+  // standard zone (min -> mid)
+  const xMin = toX(grade.min), xMid = toX(grade.mid), xMax = toX(grade.max);
+  parts.push(`<rect x="${xMin}" y="${bandY}" width="${xMid-xMin}" height="${bandH}" fill="#DBDFE6"></rect>`);
+  // exceptional zone (mid -> max), hatched
+  parts.push(`<rect x="${xMid}" y="${bandY}" width="${xMax-xMid}" height="${bandH}" fill="url(#hatch)"></rect>`);
+  parts.push(`<rect x="${xMin}" y="${bandY}" width="${xMax-xMin}" height="${bandH}" fill="none" stroke="#B7BECB" stroke-width="1"></rect>`);
+
+  // range shading (low-high)
+  const xLow = toX(Math.max(grade.min,Math.min(grade.max,low)));
+  const xHigh = toX(Math.max(grade.min,Math.min(grade.max,high)));
+  parts.push(`<rect x="${xLow}" y="${bandY}" width="${Math.max(0,xHigh-xLow)}" height="${bandH}" fill="#1F2733" opacity="0.28"></rect>`);
+
+  // min/mid/max ticks + labels
+  [['min',grade.min],['mid',grade.mid],['max',grade.max]].forEach(([label,val]) => {
+    const x = toX(val);
+    parts.push(`<line x1="${x}" y1="${bandY-6}" x2="${x}" y2="${bandY+bandH+6}" stroke="#4B5567" stroke-width="1"></line>`);
+    parts.push(`<text x="${x}" y="${bandY+bandH+22}" font-family="IBM Plex Mono, monospace" font-size="11" fill="#4B5567" text-anchor="middle">${fmt(val)}</text>`);
+    parts.push(`<text x="${x}" y="${bandY-12}" font-family="IBM Plex Mono, monospace" font-size="10" fill="#8A93A3" text-anchor="middle" text-transform="uppercase">${label}</text>`);
+  });
+
+  // peer max marker (equity ceiling)
+  if(peerMax !== null){
+    const xp = toX(Math.max(grade.min,Math.min(grade.max,peerMax)));
+    parts.push(`<line x1="${xp}" y1="${bandY-14}" x2="${xp}" y2="${bandY+bandH+14}" stroke="#2F6B63" stroke-width="2" stroke-dasharray="3,2"></line>`);
+    parts.push(`<text x="${xp}" y="${bandY-18}" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#2F6B63" text-anchor="middle">peer max</text>`);
+  }
+
+  // peer dots
+  // Only staff included in the equity maths are plotted, at their full-time salary.
+  const cmp = gradeComparison(grade.grade);
+  const peers = cmp.included.filter(p => p.fteSalary !== null);
+  peers.forEach(p => {
+    const v = Math.max(grade.min, Math.min(grade.max, p.fteSalary));
+    const x = toX(v);
+    const loeTip = isFullTime(p) ? '' : ` (FTE; actual ${fmt(p[salaryField])} at ${fmtLoe(p.loe)} LoE)`;
+    parts.push(`<circle cx="${x}" cy="${bandY+bandH+40}" r="4" fill="#2F6B63" opacity="0.65"><title>${p.name} — ${fmt(p.fteSalary)}${loeTip}</title></circle>`);
+  });
+  if(peers.length || cmp.excluded.length){
+    const exclNote = cmp.excluded.length ? ` · ${cmp.excluded.length} below 100% LoE not plotted` : '';
+    parts.push(`<text x="${marginL}" y="${bandY+bandH+56}" font-family="IBM Plex Sans, sans-serif" font-size="10.5" fill="#8A93A3">Current ${cmp.excluded.length ? 'full-time ' : ''}staff at this grade (${peers.length})${exclNote}</text>`);
+  }
+
+  // recommended marker (diamond)
+  const xr = toX(Math.max(grade.min,Math.min(grade.max,recommended)));
+  const cy = bandY + bandH/2;
+  const d = 8;
+  parts.push(`<polygon points="${xr},${cy-d} ${xr+d},${cy} ${xr},${cy+d} ${xr-d},${cy}" fill="#A9862F" stroke="#1F2733" stroke-width="1"></polygon>`);
+
+  svg.innerHTML = parts.join('');
+}
+
+/* ============================= EQUITY CHECK & FLAGS ============================= */
+function renderEquityCheck(grade, recommended, low, high, equityCapped, peerMax, eq){
+  const {peers, allPeers, excluded, salaries} = eq;
+  const tenures = peers.map(p=>p.tenureYears).filter(v=>v!==null);
+  const avgSalary = average(salaries);
+  const medSalary = median(salaries);
+  const avgTenure = average(tenures);
+  const candExp = parseFloat($('candidateExpYears').value) || 0;
+  const override = $('justifyEquityOverride').checked;
+  const loe = positionLoe();
+  const loeF = loe / 100;
+  const isPartTimeRole = loe < FULL_TIME_CUTOFF;
+  const fteTag = isPartTimeRole ? ' (full-time equivalent)' : '';
+  const partIncluded = peers.filter(p => !isFullTime(p)).length;
+  const basis = !loeMapped() ? 'peers' : (partIncluded ? 'peers, FTE basis' : 'full-time peers');
+
+  const boxes = $('equityStatBoxes');
+  boxes.innerHTML = `
+    <div class="stat-box">
+      <div class="label">Staff at this grade</div>
+      <div class="value">${allPeers.length}</div>
+      ${excluded.length ? `<div class="stat-note">${peers.length} in calculation · ${excluded.length} below 100% LoE excluded</div>` : partIncluded ? `<div class="stat-note">incl. ${partIncluded} below 100% LoE at FTE</div>` : ''}
+    </div>
+    <div class="stat-box">
+      <div class="label">Average salary (${basis})</div>
+      <div class="value">${salaries.length ? fmt(avgSalary) : '—'} <small>EGP</small></div>
+    </div>
+    <div class="stat-box">
+      <div class="label">Median salary (${basis})</div>
+      <div class="value">${salaries.length ? fmt(medSalary) : '—'} <small>EGP</small></div>
+    </div>
+    <div class="stat-box">
+      <div class="label">Avg. peer tenure</div>
+      <div class="value">${tenures.length ? avgTenure.toFixed(1) : '—'} <small>years</small></div>
+    </div>
+  `;
+
+  const flagsEl = $('flagList');
+  const flags = [];
+
+  if(isPartTimeRole){
+    flags.push({type:'neutral', text:`Part-time position at ${fmtLoe(loe)} LoE — the offer is calculated on a full-time basis (recommended ${fmt(recommended)} at 100%) and pro-rated to ${fmt(recommended*loeF)} EGP/month. Pro-rated range: ${fmt(low*loeF)} – ${fmt(high*loeF)}.`});
+  }
+
+  if(allPeers.length === 0){
+    flags.push({type:'neutral', text:'No current staff on file at this grade — internal equity has nothing to blend against, so this offer is based on the CV score alone. Upload staff data, or rely on market benchmarks.'});
+  } else if(peers.length === 0){
+    flags.push({type:'neutral', text:`All ${allPeers.length} staff in Grade ${grade.grade} are below 100% LoE and are excluded from the equity comparison, so this offer is based on the CV score alone. To compare against them, tick "Include staff below 100% LoE" in section 01 (they'll be converted to full-time equivalent).`});
+  } else {
+    if(equityCapped){
+      flags.push({type:'warn', text:`Held at ${fmt(peerMax)}${fteTag} — the current highest-paid ${excluded.length ? 'full-time ' : ''}staff member in Grade ${grade.grade}. The blended CV and equity score would otherwise support a higher offer, but without documented justification the offer should not exceed current staff.`});
+    } else if(override && peerMax !== null && recommended > peerMax){
+      flags.push({type:'warn', text:`This offer (${fmt(recommended)}${fteTag}) exceeds the current highest-paid staff member in Grade ${grade.grade} (${fmt(peerMax)}) — proceeding on the documented justification entered below. Confirm sign-off before extending.`});
+    } else if(salaries.length){
+      if(candExp < (avgTenure || 0) && recommended > avgSalary * 1.05){
+        flags.push({type:'warn', text:`Even after blending in internal equity, the offer (${fmt(recommended)}${fteTag}) sits above the grade's average salary (${fmt(avgSalary)}), while the candidate's ${candExp}y of relevant experience is below the peer average tenure (${avgTenure ? avgTenure.toFixed(1) : '—'}y). Worth a second look before finalizing.`});
+      } else if(recommended < medSalary * 0.85 && candExp > (avgTenure || 0)){
+        flags.push({type:'good', text:`The candidate's experience (${candExp}y) exceeds the peer average tenure (${avgTenure ? avgTenure.toFixed(1) : '—'}y), but the offer (${fmt(recommended)}${fteTag}) still sits below the grade median (${fmt(medSalary)}). There may be room to move higher.`});
+      } else {
+        flags.push({type:'good', text:`The offer already reflects internal equity — consistent with Grade ${grade.grade}'s average salary (${fmt(avgSalary)}) and median (${fmt(medSalary)}), and does not exceed the current highest-paid peer (${fmt(peerMax)})${isPartTimeRole ? ', all compared on a full-time basis' : ''}.`});
+      }
+    }
+    if(recommended > grade.mid){
+      flags.push({type:'warn', text:`This offer is in the exceptional zone, above the Grade ${grade.grade} midpoint (${fmt(grade.mid)}) — reserved for standout profiles with a blended score above ${exceptionalThreshold()}%.`});
+    }
+  }
+
+  if(excluded.length && peers.length){
+    const names = excluded.slice(0,3).map(p => `<bdi>${p.name}</bdi> (${fmtLoe(p.loe)})`).join(', ') + (excluded.length > 3 ? `, +${excluded.length-3} more` : '');
+    flags.push({type:'neutral', text:`${excluded.length} staff in Grade ${grade.grade} work below 100% LoE — ${names}. They are listed in the table below but excluded from the average, median and peer ceiling, so their pro-rated pay isn't treated as a low outlier.`});
+  }
+  if(partIncluded){
+    flags.push({type:'neutral', text:`${partIncluded} staff below 100% LoE are included at their full-time equivalent (salary ÷ LoE).`});
+  }
+
+  flagsEl.innerHTML = flags.map(f => `<li class="flag ${f.type==='warn'?'':f.type==='good'?'good':'neutral'}"><span>${f.text}</span></li>`).join('');
+
+  // peer table — everyone at the grade, with LoE and whether they count in the equity maths
+  const peerWrap = $('peerTableWrap');
+  if(allPeers.length){
+    peerWrap.style.display = 'block';
+    const showFte = allPeers.some(p => !isFullTime(p));
+    const fieldLabel = salaryField === 'total' ? 'total' : 'basic';
+    const sorted = peers.slice().sort((a,b)=> (b.fteSalary||0) - (a.fteSalary||0))
+      .concat(excluded.slice().sort((a,b)=> (b.fteSalary||0) - (a.fteSalary||0)));
+    const rows = sorted.map(p => {
+      const out = excluded.includes(p);
+      const tag = out
+        ? '<span class="calc-tag out">Excluded</span>'
+        : (isFullTime(p) ? '<span class="calc-tag">Included</span>' : '<span class="calc-tag fte">Included @ FTE</span>');
+      return `
+      <tr class="${out ? 'excluded' : ''}">
+        <td>${p.name}</td>
+        <td>${p.title || '—'}</td>
+        <td class="num"><span class="loe-pill${isFullTime(p) ? '' : ' part'}">${fmtLoe(p.loe)}</span></td>
+        <td class="num">${p.tenureYears !== null ? p.tenureYears.toFixed(1)+'y' : '—'}</td>
+        <td class="num">${p.basic !== null ? fmt(p.basic) : '—'}</td>
+        <td class="num">${p.total !== null ? fmt(p.total) : '—'}</td>
+        ${showFte ? `<td class="num">${p.fteSalary !== null ? fmt(p.fteSalary) : '—'}</td>` : ''}
+        <td>${tag}</td>
+      </tr>`;
+    }).join('');
+    $('peerTable').innerHTML = `
+      <thead><tr><th>Name</th><th>Title</th><th class="th-num">LoE</th><th class="th-num">Tenure</th><th class="th-num">Basic salary</th><th class="th-num">Total salary</th>${showFte ? `<th class="th-num">FTE ${fieldLabel} (100%)</th>` : ''}<th>Equity calc</th></tr></thead>
+      <tbody>${rows}</tbody>`;
+    $('peerTableFoot').textContent = showFte
+      ? `Basic and total salary are what each person is actually paid. "FTE ${fieldLabel}" is that pay scaled to 100% LoE (salary ÷ LoE). ${includePartTime() ? 'Staff below 100% LoE are included at their FTE.' : 'Staff below 100% LoE are shown for reference and excluded from the calculation.'}`
+      : (loeMapped() ? 'All staff at this grade are at 100% LoE.' : 'No LoE column mapped — all staff treated as 100% LoE.');
+  } else {
+    peerWrap.style.display = 'none';
+  }
+}
+
+/* ============================= EVENTS THAT TRIGGER RECALC ============================= */
+$('includePartTime').addEventListener('change', () => {
+  if(staffData.length) renderEquitySummary();
+  recalc();
+});
+['targetGrade','candidateExpYears','candidateCareYears','roleTitle','candidateName','exceptionalThreshold','equityWeight','positionLoe'].forEach(id => {
+  $(id).addEventListener('input', recalc);
+  $(id).addEventListener('change', recalc);
+});
+$('salaryFieldChoice').addEventListener('change', () => {
+  salaryField = $('salaryFieldChoice').value === 'basic' ? 'basic' : 'total';
+  if(staffData.length) renderEquitySummary();
+  recalc();
+});
+$('justifyEquityOverride').addEventListener('change', () => {
+  $('justificationNote').style.display = $('justifyEquityOverride').checked ? 'block' : 'none';
+  recalc();
+});
+
+/* ============================= COPY SUMMARY ============================= */
+$('copySummaryBtn').addEventListener('click', () => {
+  const grade = currentGrade();
+  const {percent} = weightedScorePercent();
+  const name = $('candidateName').value.trim() || '(candidate name not entered)';
+  const role = $('roleTitle').value.trim() || '(role not entered)';
+  const zone = $('zoneBadge').textContent || '';
+  const lines = [
+    `CEF Offer Summary`,
+    `Candidate: ${name}`,
+    `Role: ${role}`,
+    `Grade: ${grade.grade} — ${grade.title}`,
+    `Grade band: ${fmt(grade.min)} – ${fmt(grade.mid)} – ${fmt(grade.max)} EGP/month`,
+    `Position level of effort: ${fmtLoe(positionLoe())}${lastCalc && lastCalc.isPartTimeRole ? ' (part-time — offer pro-rated)' : ''}`,
+    `Weighted CV score: ${percent.toFixed(0)}% (${zone} zone)`,
+    `Suggested range: ${$('offerLow').textContent} – ${$('offerRec').textContent} – ${$('offerHigh').textContent} EGP/month (floor / recommended / ceiling)`,
+  ];
+  if(lastCalc && lastCalc.isPartTimeRole){
+    lines.push(`Full-time equivalent (100% LoE): ${fmt(lastCalc.fteLow)} – ${fmt(lastCalc.fteRec)} – ${fmt(lastCalc.fteHigh)} EGP/month`);
+  }
+  const eqInfo = equityPercentForGrade(grade);
+  if(eqInfo.excluded.length){
+    lines.push(`Internal equity: ${eqInfo.peers.length} full-time staff compared; ${eqInfo.excluded.length} staff below 100% LoE excluded`);
+  }
+  if($('justifyEquityOverride').checked && $('justificationNote').value.trim()){
+    lines.push(`Internal equity override justification: ${$('justificationNote').value.trim()}`);
+  }
+  navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Offer summary copied to clipboard'));
+});
+
+function showToast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ============================= PDF REPORT (English) =============================
+   jsPDF's built-in fonts (Helvetica) have no Arabic glyphs, so Arabic text drawn
+   directly would render as blank cells. Rather than leave those blank and
+   unexplained, Arabic fields are swapped for a short note pointing to the Excel
+   export, which handles Arabic natively — see downloadOfferExcel() below. */
+const ARABIC_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+function asciiSafe(str, fallback){
+  const s = String(str ?? '').trim();
+  if(!s) return fallback;
+  return ARABIC_RE.test(s) ? fallback : s;
+}
+
+function generatePdfReport(){
+  if(!window.jspdf){
+    showToast('PDF library failed to load — check your connection and retry');
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'pt', format:'a4'});
+  const pageW = 595, pageH = 842, marginX = 42;
+  let y = 0;
+
+  const grade = currentGrade();
+  const threshold = exceptionalThreshold();
+  const {percent} = weightedScorePercent();
+  const equityWeight = equityWeightFraction();
+  const {peers, allPeers, excluded, salaries, equityPercent, peerMedian} = equityPercentForGrade(grade);
+  const blendedPercent = equityPercent !== null
+    ? (1 - equityWeight) * percent + equityWeight * equityPercent
+    : percent;
+  const tenures = peers.map(p => p.tenureYears).filter(v => v !== null);
+  const loe = positionLoe();
+  const isPartTimeRole = loe < FULL_TIME_CUTOFF;
+
+  const rawName = $('candidateName').value.trim();
+  const name = asciiSafe(rawName, rawName ? '(Arabic — see Excel report)' : 'Not entered');
+  const rawRole = $('roleTitle').value.trim();
+  const role = asciiSafe(rawRole, rawRole ? '(Arabic — see Excel report)' : 'Not entered');
+  const zone = $('zoneBadge').textContent || '';
+  const today = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
+
+  const ink = [31,39,51], gold = [169,134,47], teal = [47,107,99], paper = [236,238,242], brick=[181,71,58];
+  const hasArabicPeerText = allPeers.some(p => ARABIC_RE.test(p.name) || ARABIC_RE.test(p.title || ''));
+
+  function ensureRoom(nextHeight){
+    if(y + nextHeight > pageH - 50){ doc.addPage(); y = 50; header(false); }
+  }
+  function header(full){
+    doc.setFillColor(...ink);
+    doc.rect(0,0,pageW, full?74:34, 'F');
+    doc.setTextColor(255,255,255);
+    if(full){
+      doc.setFont('helvetica','bold'); doc.setFontSize(17);
+      doc.text('CARE Egypt Foundation', marginX, 30);
+      doc.setFont('helvetica','normal'); doc.setFontSize(11);
+      doc.text('Offer Analysis — Human Resources & Administration', marginX, 50);
+      doc.setFontSize(8.5);
+      doc.text(`Generated ${today}`, pageW-marginX, 50, {align:'right'});
+      y = 96;
+    } else {
+      doc.setFont('helvetica','bold'); doc.setFontSize(10);
+      doc.text('CEF Offer Analysis (continued)', marginX, 22);
+      y = 48;
+    }
+    doc.setTextColor(...ink);
+  }
+  header(true);
+
+  function sectionTitle(t){
+    ensureRoom(28);
+    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(...ink);
+    doc.text(t, marginX, y); y += 6;
+    doc.setDrawColor(...gold); doc.setLineWidth(1.2);
+    doc.line(marginX, y, marginX+30, y); y += 16;
+  }
+  function bodyLine(t){
+    ensureRoom(16);
+    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(...ink);
+    doc.text(t, marginX, y); y += 15;
+  }
+
+  sectionTitle('Candidate & Role');
+  bodyLine(`Candidate: ${name}`);
+  bodyLine(`Role: ${role}`);
+  bodyLine(`Target grade: Grade ${grade.grade} — ${grade.title}`);
+  bodyLine(`Grade band (min – mid – max): ${fmt(grade.min)} – ${fmt(grade.mid)} – ${fmt(grade.max)} EGP/month (100% LoE)`);
+  bodyLine(`Position level of effort: ${fmtLoe(loe)}${isPartTimeRole ? ' — part-time, offer pro-rated from the full-time equivalent' : ' (full-time)'}`);
+  y += 8;
+
+  sectionTitle('CV Weighting');
+  const active = factors.filter(factorActive);
+  const totalWeight = active.reduce((a,f)=>a+f.weight,0);
+  const cvRows = active.map(f => [
+    f.label, f.weight+'%', String(scores[f.key]),
+    totalWeight>0 ? ((f.weight*scores[f.key])/(totalWeight*5)*100).toFixed(1)+'%' : '—'
+  ]);
+  ensureRoom(30);
+  doc.autoTable({
+    startY: y,
+    margin:{left:marginX, right:marginX},
+    head: [['Factor','Weight','Score (1–5)','Contribution']],
+    body: cvRows,
+    theme:'grid',
+    headStyles:{fillColor:ink, textColor:255, fontSize:9},
+    styles:{fontSize:9, cellPadding:5, textColor:ink},
+  });
+  y = doc.lastAutoTable.finalY + 14;
+  bodyLine(`Weighted CV score: ${percent.toFixed(1)}%`);
+  bodyLine(equityPercent !== null
+    ? `Internal equity: Grade ${grade.grade} peers sit at ~${equityPercent.toFixed(0)}% of band (median ${fmt(peerMedian)}) — blended position ${blendedPercent.toFixed(1)}% (equity weight ${(equityWeight*100).toFixed(0)}%)`
+    : `No staff on file at this grade — offer is based on CV score alone`);
+  bodyLine(`Zone: ${zone} (unlock threshold ${threshold}%)`);
+  y += 6;
+
+  sectionTitle('Suggested Offer Range');
+  const boxGap = 10;
+  const boxW = (pageW - 2*marginX - 2*boxGap) / 3;
+  const labels = ['Floor','Recommended','Ceiling'];
+  const values = [$('offerLow').textContent, $('offerRec').textContent, $('offerHigh').textContent];
+  ensureRoom(60);
+  labels.forEach((lab,i) => {
+    const x = marginX + i*(boxW+boxGap);
+    const isMid = i===1;
+    doc.setDrawColor(200,200,200);
+    doc.setFillColor(...(isMid ? ink : paper));
+    doc.roundedRect(x, y, boxW, 52, 2, 2, 'FD');
+    doc.setTextColor(...(isMid ? [255,255,255] : [90,98,110]));
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+    doc.text(lab, x+10, y+18);
+    doc.setTextColor(...(isMid ? [255,255,255] : ink));
+    doc.setFont('helvetica','bold'); doc.setFontSize(14);
+    doc.text(values[i]+' EGP', x+10, y+38);
+  });
+  y += 70;
+  doc.setTextColor(...ink);
+  if(isPartTimeRole && lastCalc){
+    bodyLine(`Pro-rated at ${fmtLoe(loe)} LoE. Full-time equivalent (100%): ${fmt(lastCalc.fteLow)} – ${fmt(lastCalc.fteRec)} – ${fmt(lastCalc.fteHigh)} EGP/month.`);
+    y += 4;
+  }
+
+  sectionTitle('Internal Equity');
+  bodyLine(`Staff at this grade: ${allPeers.length}${excluded.length ? ` (${peers.length} in calculation, ${excluded.length} below 100% LoE excluded)` : ''}`);
+  bodyLine(`Average salary: ${salaries.length?fmt(average(salaries)):'—'}   |   Median salary: ${salaries.length?fmt(median(salaries)):'—'}   |   Avg tenure: ${tenures.length?average(tenures).toFixed(1)+'y':'—'}`);
+  bodyLine(`Equity figures are on a full-time (100% LoE) basis.`);
+  y += 4;
+
+  const flagEls = document.querySelectorAll('#flagList .flag');
+  // Flags can quote staff names (e.g. the part-time exclusion note); swap any Arabic
+  // runs for a placeholder, since Helvetica cannot draw Arabic glyphs.
+  const ARABIC_RUN_RE = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]+(?:\s+[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]+)*/g;
+  flagEls.forEach(f => {
+    const text = f.textContent.trim().replace(ARABIC_RUN_RE, '(Arabic name)');
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+    const split = doc.splitTextToSize('•  '+text, pageW - 2*marginX - 6);
+    ensureRoom(split.length*12 + 6);
+    doc.text(split, marginX, y);
+    y += split.length*12 + 8;
+  });
+
+  if($('justifyEquityOverride').checked && $('justificationNote').value.trim()){
+    const rawJustification = $('justificationNote').value.trim();
+    const justification = asciiSafe(rawJustification, '(Arabic — see Excel report)');
+    ensureRoom(30);
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...brick);
+    doc.text('Internal equity override — justification', marginX, y); y += 14;
+    doc.setFont('helvetica','normal'); doc.setTextColor(...ink);
+    const j = doc.splitTextToSize(justification, pageW - 2*marginX);
+    ensureRoom(j.length*12 + 8);
+    doc.text(j, marginX, y); y += j.length*12 + 12;
+  }
+
+  if(allPeers.length){
+    ensureRoom(40);
+    sectionTitle('Staff Currently at This Grade');
+    if(hasArabicPeerText){
+      bodyLine('Names and titles are in Arabic and are not shown here — see the Excel report for full staff detail.');
+    }
+    const sortedPeers = peers.slice().sort((a,b)=>(b.fteSalary||0)-(a.fteSalary||0))
+      .concat(excluded.slice().sort((a,b)=>(b.fteSalary||0)-(a.fteSalary||0)));
+    const peerRows = sortedPeers.map(p => [
+      asciiSafe(p.name, '(Arabic name)'),
+      asciiSafe(p.title, p.title ? '(Arabic title)' : '—'),
+      fmtLoe(p.loe),
+      p.tenureYears!==null?p.tenureYears.toFixed(1)+'y':'—',
+      p.basic!==null?fmt(p.basic):'—', p.total!==null?fmt(p.total):'—',
+      excluded.includes(p) ? 'Excluded' : (isFullTime(p) ? 'Included' : 'Incl. @ FTE')
+    ]);
+    doc.autoTable({
+      startY: y,
+      margin:{left:marginX, right:marginX},
+      head:[['Name','Title','LoE','Tenure','Basic salary','Total salary','Equity calc']],
+      body: peerRows,
+      theme:'grid',
+      headStyles:{fillColor:teal, textColor:255, fontSize:9},
+      styles:{fontSize:8.5, cellPadding:4, textColor:ink},
+    });
+    y = doc.lastAutoTable.finalY + 10;
+  }
+
+  ensureRoom(20);
+  doc.setFontSize(7.5); doc.setTextColor(130,136,146);
+  doc.text('Based on the CEF Salary Structure & Grading Guide effective 1 July 2026. This report supports — not replaces — HR approval on final offers.', marginX, pageH-30);
+
+  const safeFileName = (rawName || 'candidate').replace(/[^a-zA-Z0-9]+/g,'_') || 'candidate';
+  doc.save(`CEF_Offer_${safeFileName}_Grade${grade.grade}.pdf`);
+}
+
+$('downloadPdfBtn').addEventListener('click', generatePdfReport);
+
+/* ============================= EXCEL REPORT =============================
+   Excel handles Arabic text natively — no font embedding, no shaping, no
+   bidi handling required — so this is a more reliable export target than a
+   rasterized PDF for a workbook that regularly contains Arabic names and
+   titles. Uses the same SheetJS (xlsx) library already loaded for uploads. */
+function buildOfferWorkbook(){
+  const grade = currentGrade();
+  const threshold = exceptionalThreshold();
+  const {percent} = weightedScorePercent();
+  const equityWeight = equityWeightFraction();
+  const {peers, allPeers, excluded, salaries, equityPercent, peerMedian} = equityPercentForGrade(grade);
+  const blendedPercent = equityPercent !== null
+    ? (1 - equityWeight) * percent + equityWeight * equityPercent
+    : percent;
+  const loe = positionLoe();
+  const isPartTimeRole = loe < FULL_TIME_CUTOFF;
+
+  const name = $('candidateName').value.trim() || 'Not entered';
+  const role = $('roleTitle').value.trim() || 'Not entered';
+  const zone = $('zoneBadge').textContent || '';
+  const today = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'});
+  const tenures = peers.map(p => p.tenureYears).filter(v => v !== null);
+
+  const rows = [];
+  rows.push(['CARE Egypt Foundation — Offer Analysis']);
+  rows.push([`Generated ${today}`]);
+  rows.push([]);
+  rows.push(['Candidate & Role']);
+  rows.push(['Candidate', name]);
+  rows.push(['Role', role]);
+  rows.push(['Target grade', `Grade ${grade.grade} — ${grade.title}`]);
+  rows.push(['Grade minimum', grade.min]);
+  rows.push(['Grade midpoint', grade.mid]);
+  rows.push(['Grade maximum', grade.max]);
+  rows.push(['Position level of effort (LoE %)', +loe.toFixed(1)]);
+  rows.push([]);
+
+  rows.push(['CV Weighting']);
+  rows.push(['Factor', 'Weight %', 'Score (1–5)', 'Contribution %']);
+  const active = factors.filter(factorActive);
+  const totalWeight = active.reduce((a,f)=>a+f.weight,0);
+  active.forEach(f => {
+    const contribution = totalWeight > 0 ? +(((f.weight*scores[f.key])/(totalWeight*5))*100).toFixed(1) : null;
+    rows.push([f.label, f.weight, scores[f.key], contribution]);
+  });
+  rows.push([]);
+  rows.push(['Weighted CV score %', +percent.toFixed(1)]);
+  rows.push(['Internal equity weight %', +(equityWeight*100).toFixed(0)]);
+  rows.push(['Peer position in band %', equityPercent !== null ? +equityPercent.toFixed(1) : 'No peer data at this grade']);
+  rows.push(['Blended position %', +blendedPercent.toFixed(1)]);
+  rows.push(['Zone', zone]);
+  rows.push([]);
+
+  rows.push(['Suggested Offer Range (EGP/month)']);
+  if(isPartTimeRole && lastCalc){
+    rows.push(['', `Offer at ${fmtLoe(loe)} LoE`, 'Full-time equivalent (100%)']);
+    rows.push(['Floor', Math.round(lastCalc.paidLow), Math.round(lastCalc.fteLow)]);
+    rows.push(['Recommended', Math.round(lastCalc.paidRec), Math.round(lastCalc.fteRec)]);
+    rows.push(['Ceiling', Math.round(lastCalc.paidHigh), Math.round(lastCalc.fteHigh)]);
+  } else {
+    rows.push(['Floor', $('offerLow').textContent]);
+    rows.push(['Recommended', $('offerRec').textContent]);
+    rows.push(['Ceiling', $('offerHigh').textContent]);
+  }
+  rows.push([]);
+
+  rows.push(['Internal Equity (full-time / 100% LoE basis)']);
+  rows.push(['Staff at this grade', allPeers.length]);
+  rows.push(['Included in equity calculation', peers.length]);
+  rows.push(['Excluded (below 100% LoE)', excluded.length]);
+  rows.push(['Average salary (peers)', salaries.length ? Math.round(average(salaries)) : '—']);
+  rows.push(['Median salary (peers)', salaries.length ? Math.round(median(salaries)) : '—']);
+  rows.push(['Average tenure (years)', tenures.length ? +average(tenures).toFixed(1) : '—']);
+  rows.push([]);
+
+  const flagEls = Array.from(document.querySelectorAll('#flagList .flag'));
+  if(flagEls.length){
+    rows.push(['Notes']);
+    flagEls.forEach(li => rows.push([li.textContent.trim()]));
+    rows.push([]);
+  }
+
+  const justification = $('justifyEquityOverride').checked ? $('justificationNote').value.trim() : '';
+  if(justification){
+    rows.push(['Internal equity override — justification', justification]);
+    rows.push([]);
+  }
+
+  rows.push(['Based on the CEF Salary Structure & Grading Guide effective 1 July 2026. This report supports — not replaces — HR approval on final offers.']);
+
+  const wb = XLSX.utils.book_new();
+  const wsSummary = XLSX.utils.aoa_to_sheet(rows);
+  wsSummary['!cols'] = [{wch:38},{wch:30},{wch:14},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Offer Summary');
+
+  const peerHeader = ['Name','Title','Grade','LoE %','Tenure (years)','Basic salary','Total salary',`FTE ${salaryField} salary (100% LoE)`,'Equity calculation'];
+  const peerRows = peers.slice().sort((a,b) => (b.fteSalary||0) - (a.fteSalary||0))
+    .concat(excluded.slice().sort((a,b) => (b.fteSalary||0) - (a.fteSalary||0)))
+    .map(p => [
+      p.name,
+      p.title || '',
+      p.grade,
+      p.loe,
+      p.tenureYears !== null ? +p.tenureYears.toFixed(1) : '',
+      p.basic !== null ? p.basic : '',
+      p.total !== null ? p.total : '',
+      p.fteSalary !== null ? Math.round(p.fteSalary) : '',
+      excluded.includes(p) ? 'Excluded (below 100% LoE)' : (isFullTime(p) ? 'Included' : 'Included at FTE'),
+    ]);
+  const wsPeers = XLSX.utils.aoa_to_sheet([peerHeader, ...peerRows]);
+  wsPeers['!cols'] = [{wch:28},{wch:32},{wch:8},{wch:8},{wch:14},{wch:14},{wch:14},{wch:22},{wch:26}];
+  XLSX.utils.book_append_sheet(wb, wsPeers, `Grade ${grade.grade} staff`);
+
+  return {wb, grade, name};
+}
+
+function downloadOfferExcel(){
+  if(!window.XLSX){
+    showToast('Excel library failed to load — check your connection and retry');
+    return;
+  }
+  try{
+    const {wb, grade, name} = buildOfferWorkbook();
+    const safeName = (name === 'Not entered' ? 'candidate' : name).trim().replace(/[^a-zA-Z0-9\u0600-\u06FF]+/g,'_') || 'candidate';
+    XLSX.writeFile(wb, `CEF_Offer_${safeName}_Grade${grade.grade}.xlsx`);
+    showToast('Excel report downloaded');
+  } catch(err){
+    console.error(err);
+    showToast('Could not generate the Excel report — please retry');
+  }
+}
+
+$('downloadExcelBtn').addEventListener('click', downloadOfferExcel);
+
+
+
+/* ============================= INITIAL RENDER ============================= */
+recalc();
+</script>
+</body>
+</html>
