@@ -426,6 +426,30 @@
 
   .actions-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
 
+  .final-offer{
+    margin-top:22px;
+    padding:18px 20px;
+    border:1px solid var(--line);
+    background:#fff;
+  }
+  .final-offer .fo-title{font-weight:600;font-size:13.5px;margin-bottom:4px;}
+  .final-offer .fo-sub{font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;}
+  .final-offer .fo-amount{display:flex;align-items:center;gap:8px;}
+  .final-offer .fo-amount input{font-family:var(--mono);font-size:16px;}
+  .final-offer .fo-amount span{font-size:13px;color:var(--ink-soft);white-space:nowrap;}
+  .final-offer .fo-hint{font-size:12px;color:var(--ink-soft);margin-top:6px;min-height:16px;}
+  .final-offer .fo-hint.warn{color:var(--brick);}
+  .final-offer textarea{
+    width:100%;
+    font-family:var(--sans);
+    font-size:13px;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    resize:vertical;
+    min-height:80px;
+  }
+
   .footer-note{
     font-size:11.5px;
     color:var(--ink-soft);
@@ -724,6 +748,25 @@
           <table id="peerTable"></table>
         </div>
         <div class="table-foot" id="peerTableFoot"></div>
+      </div>
+
+      <div class="final-offer">
+        <div class="fo-title">Final offer &amp; comments</div>
+        <div class="fo-sub">Optional. Whatever you enter here is added to the PDF, Excel and copied summary.</div>
+        <div class="grid grid-3">
+          <div>
+            <label class="field-label" for="finalOfferEgp">Offer amount (EGP / month)</label>
+            <div class="fo-amount">
+              <input type="text" id="finalOfferEgp" inputmode="decimal" autocomplete="off" placeholder="e.g. 25,000">
+              <span>EGP</span>
+            </div>
+            <div class="fo-hint" id="finalOfferHint"></div>
+          </div>
+          <div class="span-2">
+            <label class="field-label" for="offerComments">Comments on the offer</label>
+            <textarea id="offerComments" placeholder="e.g. offer agreed with the hiring manager; start date 1 December; includes transport allowance…"></textarea>
+          </div>
+        </div>
       </div>
 
       <div class="actions-row">
@@ -1285,7 +1328,45 @@ function recalc(){
 
   renderGauge(grade, low, recommended, high, threshold, peerMax);
   renderEquityCheck(grade, recommended, low, high, equityCapped, peerMax, eq);
+  updateFinalOfferHint();
 }
+
+/* ============================= FINAL OFFER & COMMENTS =============================
+   The figure HR actually intends to offer (EGP/month, at the position's LoE) and
+   free-text comments. Both are optional and flow into every export. */
+function finalOfferAmount(){
+  const v = cleanCurrency($('finalOfferEgp').value);
+  return isFinite(v) && v > 0 ? v : null;
+}
+function offerComments(){ return $('offerComments').value.trim(); }
+
+function updateFinalOfferHint(){
+  const hint = $('finalOfferHint');
+  const amount = finalOfferAmount();
+  hint.classList.remove('warn');
+  if(amount === null || !lastCalc){
+    hint.textContent = $('finalOfferEgp').value.trim() ? 'Enter a number, e.g. 25000' : '';
+    if(hint.textContent) hint.classList.add('warn');
+    return;
+  }
+  const grade = currentGrade();
+  const loeF = lastCalc.loe / 100;
+  let note, warn = false;
+  if(amount > grade.max * loeF){ note = `Above the Grade ${grade.grade} maximum (${fmt(grade.max * loeF)})`; warn = true; }
+  else if(amount < grade.min * loeF){ note = `Below the Grade ${grade.grade} minimum (${fmt(grade.min * loeF)})`; warn = true; }
+  else if(amount > lastCalc.paidHigh + 0.5){ note = `Above the suggested ceiling (${fmt(lastCalc.paidHigh)})`; warn = true; }
+  else if(amount < lastCalc.paidLow - 0.5){ note = `Below the suggested floor (${fmt(lastCalc.paidLow)})`; warn = true; }
+  else note = 'Within the suggested range';
+  if(lastCalc.isPartTimeRole) note += ` · ${fmt(amount / loeF)} at 100% LoE`;
+  hint.textContent = note;
+  if(warn) hint.classList.add('warn');
+}
+
+$('finalOfferEgp').addEventListener('input', updateFinalOfferHint);
+$('finalOfferEgp').addEventListener('blur', () => {
+  const amount = finalOfferAmount();
+  if(amount !== null) $('finalOfferEgp').value = amount.toLocaleString('en-US', {maximumFractionDigits:2});
+});
 
 /* ============================= GAUGE SVG ============================= */
 function renderGauge(grade, low, recommended, high, threshold, peerMax){
@@ -1518,6 +1599,13 @@ $('copySummaryBtn').addEventListener('click', () => {
   if($('justifyEquityOverride').checked && $('justificationNote').value.trim()){
     lines.push(`Internal equity override justification: ${$('justificationNote').value.trim()}`);
   }
+  const finalAmount = finalOfferAmount();
+  if(finalAmount !== null){
+    lines.push(`Final offer: ${fmt(finalAmount)} EGP/month` + (lastCalc && lastCalc.isPartTimeRole ? ` (${fmt(finalAmount / (lastCalc.loe/100))} at 100% LoE)` : ''));
+  }
+  if(offerComments()){
+    lines.push(`Comments: ${offerComments()}`);
+  }
   navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Offer summary copied to clipboard'));
 });
 
@@ -1668,6 +1756,46 @@ function generatePdfReport(){
     y += 4;
   }
 
+  const finalAmount = finalOfferAmount();
+  const rawComments = offerComments();
+  if(finalAmount !== null || rawComments){
+    sectionTitle('Final Offer');
+    if(finalAmount !== null){
+      ensureRoom(60);
+      const fw = (pageW - 2*marginX - 2*boxGap) / 3;
+      doc.setDrawColor(...gold); doc.setLineWidth(1.2);
+      doc.setFillColor(255,255,255);
+      doc.roundedRect(marginX, y, fw, 52, 2, 2, 'FD');
+      doc.setTextColor(90,98,110);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+      doc.text('Offer amount (per month)', marginX+10, y+18);
+      doc.setTextColor(...ink);
+      doc.setFont('helvetica','bold'); doc.setFontSize(14);
+      doc.text(fmt(finalAmount)+' EGP', marginX+10, y+38);
+      const hintText = $('finalOfferHint').textContent;
+      if(hintText){
+        doc.setFont('helvetica','normal'); doc.setFontSize(9);
+        doc.setTextColor(...($('finalOfferHint').classList.contains('warn') ? brick : [90,98,110]));
+        doc.text(doc.splitTextToSize(hintText, pageW - 2*marginX - fw - 16), marginX + fw + 14, y+30);
+      }
+      y += 70;
+      doc.setTextColor(...ink);
+    }
+    if(rawComments){
+      const comments = asciiSafe(rawComments, '(Comments are in Arabic — see Excel report)');
+      ensureRoom(30);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...ink);
+      doc.text('Comments', marginX, y); y += 14;
+      doc.setFont('helvetica','normal');
+      doc.splitTextToSize(comments, pageW - 2*marginX).forEach(line => {
+        ensureRoom(14);
+        doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(...ink);
+        doc.text(line, marginX, y); y += 13;
+      });
+      y += 8;
+    }
+  }
+
   sectionTitle('Internal Equity');
   bodyLine(`Staff at this grade: ${allPeers.length}${excluded.length ? ` (${peers.length} in calculation, ${excluded.length} below 100% LoE excluded)` : ''}`);
   bodyLine(`Average salary: ${salaries.length?fmt(average(salaries)):'—'}   |   Median salary: ${salaries.length?fmt(median(salaries)):'—'}   |   Avg tenure: ${tenures.length?average(tenures).toFixed(1)+'y':'—'}`);
@@ -1802,6 +1930,19 @@ function buildOfferWorkbook(){
     rows.push(['Ceiling', $('offerHigh').textContent]);
   }
   rows.push([]);
+
+  const finalAmount = finalOfferAmount();
+  const comments = offerComments();
+  if(finalAmount !== null || comments){
+    rows.push(['Final Offer']);
+    if(finalAmount !== null){
+      rows.push(['Offer amount (EGP/month)', Math.round(finalAmount * 100) / 100]);
+      if(isPartTimeRole) rows.push(['Full-time equivalent (100% LoE)', Math.round(finalAmount / (loe/100))]);
+      if($('finalOfferHint').textContent) rows.push(['Position vs. range', $('finalOfferHint').textContent]);
+    }
+    if(comments) rows.push(['Comments', comments]);
+    rows.push([]);
+  }
 
   rows.push(['Internal Equity (full-time / 100% LoE basis)']);
   rows.push(['Staff at this grade', allPeers.length]);
